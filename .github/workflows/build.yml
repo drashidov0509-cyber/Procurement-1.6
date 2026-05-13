@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    name: Build Procurement.exe
+    name: Build Procurement-1.6.exe
     runs-on: windows-latest
 
     steps:
@@ -29,6 +29,7 @@ jobs:
           pyinstaller --onefile --windowed `
             --name "Procurement-1.6" `
             --add-data "ui.html;." `
+            --add-data "pdf_parser.py;." `
             --hidden-import _cffi_backend `
             --hidden-import pdfplumber `
             --hidden-import PIL `
@@ -37,6 +38,12 @@ jobs:
             --collect-all webview `
             --noconfirm `
             app.py
+
+      - name: Check result
+        run: |
+          dir dist
+          $s = (Get-Item "dist/Procurement-1.6.exe").Length / 1MB
+          Write-Host "Size: $([math]::Round($s,1)) MB"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
