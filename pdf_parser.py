@@ -11,7 +11,7 @@ try:
     HAS_PDFPLUMBER = True
 except ImportError:
     HAS_PDFPLUMBER = False
-from typing import List, Optional
+from typing import List, Dict, Any, Optional
 
 
 def parse_pdf(path: str) -> list:
