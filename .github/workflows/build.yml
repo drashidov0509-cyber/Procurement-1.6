@@ -25,7 +25,8 @@ jobs:
           pip install pywebview httpx selectolax openpyxl pyinstaller pdfplumber pillow reportlab
 
       - name: Build EXE
-        run: python -m PyInstaller --onefile --windowed --name "Procurement-1.6" --add-data "ui.html;." --add-data "pdf_parser.py;." --hidden-import _cffi_backend --hidden-import pdfplumber --hidden-import PIL --hidden-import reportlab --hidden-import openpyxl --collect-all webview --noconfirm app.py
+        run: |
+          python -m PyInstaller --onefile --windowed --name "Procurement-1.6" --add-data "ui.html;." --hidden-import _cffi_backend --hidden-import pdfplumber --hidden-import PIL --hidden-import reportlab --hidden-import openpyxl --hidden-import selectolax --collect-all webview --noconfirm app.py
 
       - name: Show result
         run: dir dist
