@@ -3,23 +3,37 @@
 Поддерживает: таблицы, текстовые списки, нумерованные позиции.
 """
 import re
-from typing import List, Dict, Any
+import sys
+
+# Статический импорт для правильной упаковки PyInstaller
+try:
+    import pdfplumber
+    HAS_PDFPLUMBER = True
+except ImportError:
+    HAS_PDFPLUMBER = False
+from typing import List, Optional
 
 
-def parse_pdf(path: str) -> List[Dict[str, Any]]:
+def parse_pdf(path: str) -> list:
     """
     Основная функция парсинга PDF.
     Возвращает список позиций: [{name, param, unit, qty}, ...]
     """
-    try:
-        import pdfplumber
-    except ImportError:
-        import subprocess, sys
-        subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", "-q", "pdfplumber"],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-        )
-        import pdfplumber
+    global HAS_PDFPLUMBER
+    if not HAS_PDFPLUMBER:
+        try:
+            import subprocess
+            subprocess.check_call(
+                [sys.executable, "-m", "pip", "install", "-q", "pdfplumber"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
+            import pdfplumber as _pdf
+            HAS_PDFPLUMBER = True
+        except Exception as e:
+            print(f"pdfplumber install failed: {e}", file=sys.stderr)
+            return []
+
+    import pdfplumber
 
     items = []
     raw_text = ""
