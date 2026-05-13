@@ -132,70 +132,27 @@ class API:
     def import_pdf(self) -> Dict[str, Any]:
         try:
             if not self._window:
-                return {"error":"Окно недоступно"}
+                return {"error": "Окно недоступно"}
             files = self._window.create_file_dialog(
                 dialog_type=webview.OPEN_DIALOG, allow_multiple=False,
                 file_types=("PDF (*.pdf)",),
             )
             if not files:
-                return {"cancelled":True}
-            path = files[0] if isinstance(files,(list,tuple)) else files
+                return {"cancelled": True}
+            path = files[0] if isinstance(files, (list, tuple)) else files
 
-            try:
-                import pdfplumber
-            except ImportError:
-                _pip("pdfplumber"); import pdfplumber
-
-            items = []
-            raw_text = ""
-
-            with pdfplumber.open(path) as pdf:
-                for page in pdf.pages:
-                    # --- таблицы ---
-                    for table in (page.extract_tables() or []):
-                        for row in table:
-                            if not row or not row[0]: continue
-                            cells = [str(c).strip() if c else "" for c in row]
-                            head_words = {"наименование","name","товар","материал",
-                                          "позиция","№","#","ед","кол"}
-                            if any(w in cells[0].lower() for w in head_words): continue
-                            name  = cells[0][:200]
-                            param = cells[1][:200] if len(cells)>1 else ""
-                            unit  = cells[2] if len(cells)>2 else "шт"
-                            try:   qty = float(re.sub(r"[^\d.]","",cells[3])) if len(cells)>3 else 1.0
-                            except: qty = 1.0
-                            if name and len(name)>2 and qty>0:
-                                items.append({"name":name,"param":param,
-                                              "unit":unit or "шт","qty":qty})
-                    raw_text += (page.extract_text() or "") + "\n"
-
-            # --- если таблиц нет — анализируем текст ---
-            if not items and raw_text.strip():
-                for line in raw_text.splitlines():
-                    line = line.strip()
-                    if len(line)<3: continue
-                    m = re.match(
-                        r'^(?:\d+[\.\)]\s*)?(.+?)\s{2,}(\d+(?:[.,]\d+)?)\s*(шт|кг|т|м|л|уп|компл|пог\.м)?',
-                        line
-                    )
-                    if m:
-                        name = m.group(1).strip()
-                        try:   qty = float(m.group(2).replace(",","."))
-                        except: qty = 1.0
-                        unit = m.group(3) or "шт"
-                        if name and len(name)>2 and qty>0:
-                            items.append({"name":name[:200],"param":"",
-                                          "unit":unit,"qty":qty})
+            from pdf_parser import parse_pdf
+            items = parse_pdf(path)
 
             if not items:
                 return {"error":
                     "Не удалось распознать позиции ТМЦ в PDF.\n"
                     "Убедитесь что PDF содержит таблицу:\n"
                     "Наименование | Параметры | Ед.изм. | Кол-во"}
-            return {"ok":True,"items":items,"count":len(items)}
+            return {"ok": True, "items": items, "count": len(items)}
         except Exception as e:
             import traceback; traceback.print_exc()
-            return {"error":f"Ошибка чтения PDF: {e}"}
+            return {"error": f"Ошибка чтения PDF: {e}"}
 
     # ── ЭКСПОРТ EXCEL ──────────────────────────────────────────────
     def export_excel(self, result: Dict[str,Any], country_name: str,
